@@ -1,5 +1,12 @@
 <template>
   <div id="app">
+    
+    <nav>
+      <router-link to="/">首页</router-link>
+      <router-link to="/attack-test">⚡ 攻击测试</router-link>
+      <!-- 其他链接 -->
+    </nav>
+    <router-view />
     <nav class="navbar" v-if="$route.name !== 'login'">
       <div class="nav-container">
         <h1 class="nav-logo">Secure File Portal</h1>

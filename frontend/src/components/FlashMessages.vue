@@ -1,4 +1,5 @@
 <template>
+  
   <div class="flash-messages" v-if="messages.length > 0">
     <div 
       v-for="(message, index) in messages" 

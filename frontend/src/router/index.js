@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '../views/LoginView.vue'
 import DashboardView from '../views/DashboardView.vue'
+import AttackTest from '../components/AttackTest.vue'
 
 const routes = [
   {
@@ -17,11 +18,17 @@ const routes = [
     name: 'dashboard',
     component: DashboardView,
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/attack-test',
+    name: 'AttackTest',
+    component: AttackTest,
+    meta: { title: '安全攻击测试' }
   }
 ]
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory(process.env.BASE_URL),
   routes
 })
 
