@@ -310,7 +310,14 @@ def api_download_file(current_user, filename):
         return jsonify({'message': f'Error decrypting file: {str(e)}'}), 500
 
 if __name__ == '__main__':
+    # Parse command line arguments
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--host', default='127.0.0.1', help='Host to run the server on')
+    parser.add_argument('--port', type=int, default=5000, help='Port to run the server on')
+    args = parser.parse_args()
+    
     # WARNING: debug=True should be False in production
     # Use a production WSGI server (Gunicorn, uWSGI) for production deployment
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host=args.host, port=args.port)
 

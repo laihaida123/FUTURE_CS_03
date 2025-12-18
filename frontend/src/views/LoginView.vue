@@ -74,22 +74,22 @@ export default {
           const redirect = this.$route.query.redirect || '/dashboard'
           this.$router.push(redirect)
         } else {
-          // 使用全局事件总线发送消息
-          window.dispatchEvent(new CustomEvent('flash-message', {
-            detail: {
-              message: response.data.message || 'Login failed',
-              type: 'error'
-            }
-          }))
+          // 使用直接引用方式发送消息
+          if (this.$root.$refs.flashMessages) {
+            this.$root.$refs.flashMessages.addMessage(
+              response.data.message || 'Login failed',
+              'error'
+            )
+          }
         }
       } catch (error) {
-        // 使用全局事件总线发送消息
-        window.dispatchEvent(new CustomEvent('flash-message', {
-          detail: {
-            message: error.response?.data?.message || 'An error occurred during login',
-            type: 'error'
-          }
-        }))
+        // 使用直接引用方式发送消息
+        if (this.$root.$refs.flashMessages) {
+          this.$root.$refs.flashMessages.addMessage(
+            error.response?.data?.message || 'An error occurred during login',
+            'error'
+          )
+        }
       } finally {
         this.loading = false
       }
