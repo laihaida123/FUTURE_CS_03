@@ -1,29 +1,38 @@
 const { defineConfig } = require('@vue/cli-service')
 
-// 简单的轮询负载均衡器
-let currentPort = 5000
-const ports = [5000, 5001, 5002, 5003, 5004, 5005]
-
-function getNextPort() {
-  const port = ports[currentPort % ports.length]
-  currentPort++
-  return port
-}
-
 module.exports = defineConfig({
   transpileDependencies: true,
   devServer: {
     proxy: {
-      '/api': {
-        target: `http://localhost:${getNextPort()}`,
+      '^/api': {
+        target: 'http://127.0.0.1:5000',
         changeOrigin: true,
-        // 路径重写，确保请求发送到正确的位置
-        pathRewrite: {
-          '^/api': '/api'
+        logLevel: 'debug',
+        // 根据请求头中的"x-target-port"来确定实际要转发到的端口
+        router: (req) => {
+          // 从请求头中获取目标端口
+          const targetPort = req.headers['x-target-port'];
+          if (targetPort) {
+            console.log(`Proxying to port: ${targetPort}`);
+            return `http://127.0.0.1:${targetPort}`;
+          }
+          // 默认使用5000端口
+          console.log('Proxying to default port: 5000');
+          return 'http://127.0.0.1:5000';
         },
-        // 自定义代理逻辑，实现简单的轮询
-        router: () => {
-          return `http://localhost:${getNextPort()}`
+        // 删除x-target-port头部，避免发送到后端
+        onProxyReq: (proxyReq, req, res) => {
+          if (proxyReq.getHeader('x-target-port')) {
+            proxyReq.removeHeader('x-target-port');
+          }
+        },
+        // 处理代理错误
+        onError: (err, req, res) => {
+          console.error('Proxy error:', err);
+          res.writeHead(500, {
+            'Content-Type': 'application/json',
+          });
+          res.end(JSON.stringify({ message: 'Proxy error: ' + err.message }));
         }
       }
     }

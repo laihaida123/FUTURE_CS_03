@@ -9,14 +9,13 @@ import sys
 import os
 from pathlib import Path
 
-def start_server(port, host='127.0.0.1'):
+def start_server(script_name, port, host='127.0.0.1'):
     """Start a Flask server instance on the specified port."""
     try:
-        # Use the same app.py but with different port
+        # Use environment variables to pass host and port information
+        # This works because Flask automatically reads these environment variables
         process = subprocess.Popen([
-            sys.executable, 'app.py', 
-            '--port', str(port), 
-            '--host', host
+            sys.executable, script_name
         ], env={
             **os.environ,
             'FLASK_RUN_PORT': str(port),
@@ -29,14 +28,23 @@ def start_server(port, host='127.0.0.1'):
 
 def main():
     """Main function to start multiple server instances."""
-    ports = [5000, 5001, 5002, 5003, 5004, 5005]
+    # Define which scripts to run on which ports
+    servers = [
+        ('app.py', 5000),
+        ('vuln_unauth.py', 5001),
+        ('vuln_dir_traversal.py', 5002),
+        ('vuln_ecb_mode.py', 5003),
+        ('app.py', 5004),
+        ('vuln_sql_injection.py', 5005)
+    ]
+    
     processes = []
     
     print("Starting multiple Flask instances...")
     
-    for port in ports:
-        print(f"Starting server on port {port}...")
-        process = start_server(port)
+    for script_name, port in servers:
+        print(f"Starting {script_name} on port {port}...")
+        process = start_server(script_name, port)
         if process:
             processes.append((port, process))
     

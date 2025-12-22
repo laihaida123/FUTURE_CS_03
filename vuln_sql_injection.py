@@ -7,12 +7,23 @@ from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import jwt
 import datetime
+from Crypto.Random import get_random_bytes
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = secrets.token_hex(32)
 app.config['UPLOAD_FOLDER'] = 'protected_files'
 app.config['DATABASE'] = 'test.db'
-app.config['JWT_SECRET_KEY'] = secrets.token_hex(32)
+
+# 使用持久化的JWT密钥而不是每次都生成新的
+jwt_secret_file = Path('keys/jwt_secret_sql.key')
+if jwt_secret_file.exists():
+    with open(jwt_secret_file, 'r') as f:
+        app.config['JWT_SECRET_KEY'] = f.read()
+else:
+    jwt_secret = secrets.token_hex(32)
+    with open(jwt_secret_file, 'w') as f:
+        f.write(jwt_secret)
+    app.config['JWT_SECRET_KEY'] = jwt_secret
 
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 
@@ -69,6 +80,18 @@ users = {
         'id': 3
     }
 }
+
+def get_encryption_key():
+    # 使用独立的密钥文件，避免与其他服务冲突
+    key_file = Path('keys/encryption_key_sql.key')
+    if key_file.exists():
+        with open(key_file, 'rb') as f:
+            return f.read()
+    else:
+        key = get_random_bytes(32)
+        with open(key_file, 'wb') as f:
+            f.write(key)
+        return key
 
 # ========== SQL注入漏洞点 ==========
 @app.route('/api/vulnerable/search', methods=['GET'])
@@ -275,4 +298,9 @@ def index():
     return jsonify({'message': 'SQL注入漏洞演示版本', 'port': 5005})
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5005)
+    # 从环境变量获取主机和端口配置，如果没有则使用默认值
+    import os
+    host = os.environ.get('FLASK_RUN_HOST', '0.0.0.0')
+    port = int(os.environ.get('FLASK_RUN_PORT', 5005))
+    
+    app.run(debug=True, host=host, port=port)

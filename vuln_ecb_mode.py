@@ -22,7 +22,17 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = secrets.token_hex(32)
 app.config['UPLOAD_FOLDER'] = 'protected_files'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
-app.config['JWT_SECRET_KEY'] = secrets.token_hex(32)
+
+# 使用持久化的JWT密钥而不是每次都生成新的
+jwt_secret_file = Path('keys/jwt_secret_ecb.key')
+if jwt_secret_file.exists():
+    with open(jwt_secret_file, 'r') as f:
+        app.config['JWT_SECRET_KEY'] = f.read()
+else:
+    jwt_secret = secrets.token_hex(32)
+    with open(jwt_secret_file, 'w') as f:
+        f.write(jwt_secret)
+    app.config['JWT_SECRET_KEY'] = jwt_secret
 
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 
@@ -56,7 +66,8 @@ def load_user(user_id):
     return None
 
 def get_encryption_key():
-    key_file = Path('keys/encryption_key.key')
+    # 使用独立的密钥文件，避免与其他服务冲突
+    key_file = Path('keys/encryption_key_ecb.key')
     if key_file.exists():
         with open(key_file, 'rb') as f:
             return f.read()
@@ -105,7 +116,9 @@ def token_required(f):
                 
             data = jwt.decode(token, app.config['JWT_SECRET_KEY'], algorithms=['HS256'])
             current_user = User(data['username'], data['id'])
-        except:
+        except jwt.ExpiredSignatureError:
+            return jsonify({'message': 'Token has expired'}), 401
+        except jwt.InvalidTokenError:
             return jsonify({'message': 'Token is invalid'}), 401
             
         return f(current_user, *args, **kwargs)
@@ -227,4 +240,9 @@ def api_download_file(current_user, filename):
         return jsonify({'message': f'Error decrypting file: {str(e)}'}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5003)
+    # 从环境变量获取主机和端口配置，如果没有则使用默认值
+    import os
+    host = os.environ.get('FLASK_RUN_HOST', '127.0.0.1')
+    port = int(os.environ.get('FLASK_RUN_PORT', 5003))
+    
+    app.run(debug=True, host=host, port=port)

