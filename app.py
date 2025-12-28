@@ -252,7 +252,8 @@ def is_safe_path(basedir, path):
         resolved_path = Path(basedir).resolve() / path
         # 确保解析后的路径在基目录内，防止目录遍历攻击
         # Ensure the resolved path is within the base directory
-        return Path(basedir).resolve() in resolved_path.parents or Path(basedir).resolve() == resolved_path.parent
+        return Path(basedir).resolve() in resolved_path.parents \
+            or Path(basedir).resolve() == resolved_path.parent
     except (OSError, ValueError):
         # 如果解析过程中出现异常，认为路径不安全
         return False
